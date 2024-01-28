@@ -3,9 +3,7 @@ import os
 import time
 from dotenv import load_dotenv
 from langchain_community.llms import Ollama
-# from pydantic import BaseModel
 
-# load environment variables from dev.env file
 load_dotenv(dotenv_path="dev.env")
 
 appid = os.getenv("APPID")
@@ -13,14 +11,6 @@ openweathermap_base_url = 'https://api.openweathermap.org'
 
 if not appid or not isinstance(appid, str):
     raise ValueError("APPID environment variable is not set or is not a string.")
-
-# class Coordinates(BaseModel):
-#     latitude: float
-#     longitude: float
-    
-# class CityInfo(BaseModel):
-#     city_name_sv: str
-#     coordinates: tuple
 
 # functions
 def get_coordinates_from_city(city_name: str) -> tuple:
@@ -43,13 +33,10 @@ def get_coordinates_from_city(city_name: str) -> tuple:
 
     if response.status_code == 200:
         data = response.json()
-        #city_name_sv = data[0].get("local_names")["sv"]
         latitude = float(data[0].get("lat"))
         longitude = float(data[0].get("lon"))
         
         return (latitude, longitude)
-        #return CityInfo(city_name_sv=city_name_sv, coordinates=(lat, lon))
-        #return CityInfo(city_name_sv=city_name_sv, coordinates=Coordinates(latitude=lat, longitude=lon))
     else:
         print("API request failed with status code:", response.status_code)
         return None
@@ -154,11 +141,7 @@ my_question = RAVEN_PROMPT.format(query = QUESTION)
 ollama = Ollama(base_url='http://localhost:11434', model='nexusraven:latest')
 answer = ollama.invoke(my_question, temperature=0.001, stop=["Thought:"], num_predict=2000)
 
-#print(answer)
-
 raven_call = answer.replace("Call:", "").strip()
-#print(raven_call)
-
 
 # execute function call
 exec(raven_call)
