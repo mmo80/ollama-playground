@@ -1,0 +1,25 @@
+{
+  "name": "ollama-playground-ts",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "tsc && node ./dist/index.js",
+    "watch": "tsc -w"
+  },
+  "type": "module",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "typescript": "^5.4.2"
+  },
+  "dependencies": {
+    "fs": "^0.0.1-security",
+    "langchain": "^0.1.28",
+    "ollama": "^0.5.0",
+    "pdf-text-reader": "^4.0.1",
+    "perf_hooks": "^0.0.1",
+    "weaviate-ts-client": "^2.1.1"
+  }
+}
