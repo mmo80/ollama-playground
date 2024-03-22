@@ -13,6 +13,49 @@ if not appid or not isinstance(appid, str):
     raise ValueError("APPID environment variable is not set or is not a string.")
 
 # functions
+def get_crypto_spot_price(symbol: str) -> str:
+    """
+    Retrieves the spot price of a cryptocurrency from the Coinbase API.
+
+    Args:
+        symbol (str): The symbol of the cryptocurrency.
+
+    Returns:
+        str: The spot price of the cryptocurrency.
+
+    Raises:
+        None
+
+    """
+    base_url = f'https://api.coinbase.com/v2/prices/{symbol}-USD/spot'
+    response = requests.get(base_url)
+    if response.status_code == 200:
+        data = response.json()
+        currentPrice = float(data.get("data").get("amount"))
+        unit = data.get("data").get("base")
+        currency = data.get("data").get("currency")
+        
+        print(f'Priset på {unit} är {currentPrice} {currency}.')
+    else:
+        print("API request failed with status code:", response.status_code)
+        return None
+    
+def get_stock_spot_price(symbol: str) -> str:
+    """
+    Retrieves the spot price of a stock from an API.
+
+    Args:
+        symbol (str): The symbol of the stock.
+
+    Returns:
+        str: The spot price of the stock.
+
+    Raises:
+        None
+
+    """
+    print(f'Priset på {symbol} är ... ...')    
+
 def get_coordinates_from_city(city_name: str) -> tuple:
     """
     Retrieves the coordinates (latitude and longitude) of a given city.
@@ -128,9 +171,42 @@ def get_general_question(question: str) -> str:
     Returns:
         str: The response from the Ollama API.
     """
+    
+Function:
+def get_crypto_spot_price(symbol: str) -> str:
+    """
+    Retrieves the spot price of a cryptocurrency from the Coinbase API.
+
+    Args:
+        symbol (str): The symbol of the cryptocurrency.
+
+    Returns:
+        str: The spot price of the cryptocurrency.
+
+    Raises:
+        None
+
+    """
+
+Function:
+def get_stock_spot_price(symbol: str) -> str:
+    """
+    Retrieves the spot price of a stock from an API.
+
+    Args:
+        symbol (str): The symbol of the stock.
+
+    Returns:
+        str: The spot price of the stock.
+
+    Raises:
+        None
+
+    """
+    
 
 Notes:
-If it is not a query related to weather, just use the get_general_question function.
+If it is not a query does not match with any of the other function other then get_general_question, then just use the get_general_question function.
 
 User Query: {query}
 '''
