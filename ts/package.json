@@ -17,8 +17,10 @@
   "dependencies": {
     "fs": "^0.0.1-security",
     "llm-chunk": "^0.0.1",
+    "mammoth": "^1.7.1",
+    "matts-llm-tools": "^0.0.2",
     "ollama": "^0.5.0",
-    "pdf-text-reader": "^4.0.1",
+    "pdfjs-dist": "^4.0.379",
     "perf_hooks": "^0.0.1",
     "weaviate-ts-client": "^2.1.1",
     "wink-eng-lite-web-model": "^1.5.2",

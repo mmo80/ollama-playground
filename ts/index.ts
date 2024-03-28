@@ -1,13 +1,15 @@
 import { Ollama } from 'ollama';
 import weaviate from 'weaviate-ts-client';
-import { performance } from 'perf_hooks';
 
-import { DocumentReader } from './document-reader.js';
+import { performance } from 'perf_hooks';
+import { performanceTestFunc } from './performanceTestFunc.js';
+
+import { DocumentReader, saveFile } from './document-reader.js';
+
 import { chunker } from './chunker.js';
 import { SentenceSplitter } from './sentence-splitter.js';
-
-import { chunk } from 'llm-chunk'
-
+import { chunk } from 'llm-chunk';
+import { chunkTextBySentences } from 'matts-llm-tools';
 
 // process.on('warning', (warning) => {
 //   console.log(warning.stack);
@@ -18,8 +20,6 @@ type DocumentVectorSchema = {
   file: string;
   embed: number[];
 };
-// chunkIndex
-// chunkTotal
 
 const client = weaviate.client({
   scheme: 'http',
@@ -31,19 +31,13 @@ const ollama = new Ollama({ host: 'http://localhost:11434' });
 const t0 = performance.now();
 
 const get_embed_ollama = async (text: string, filename: string): Promise<DocumentVectorSchema[]> => {
-  const chunklength = 100;
-  const chunkoverlap = 3;
+  const sentencesPerChunk = 8;
+  const chunkoverlap = 0;
   const model = 'nomic-embed-text';
   const allChunks: DocumentVectorSchema[] = [];
 
-  const chunks = chunker(text, chunklength, chunkoverlap);
-  // const splitter = new TokenTextSplitter({
-  //   encodingName: 'gpt2',
-  //   chunkSize: chunklength,
-  //   chunkOverlap: chunkoverlap,
-  // });
+  const chunks = chunkTextBySentences(text, sentencesPerChunk, chunkoverlap);
 
-  // const output = await splitter.createDocuments([text]);
   for (const chunk of chunks) {
     const result = await ollama.embeddings({ model: model, prompt: chunk });
     const embed = result.embedding;
@@ -55,7 +49,7 @@ const get_embed_ollama = async (text: string, filename: string): Promise<Documen
   return allChunks;
 };
 
-const vector_database_status = async () => {
+const vector_database_schemas = async () => {
   const response = await client.schema.getter().do();
   console.log(response);
 };
@@ -91,7 +85,6 @@ const batch_data_to_vector_database = async (list: DocumentVectorSchema[]) => {
 
     if (counter++ == batchSize) {
       result = await batcher.do();
-      //console.log('MIDDLE: ', JSON.stringify(result, null, 2));
 
       // restart
       counter = 0;
@@ -100,7 +93,6 @@ const batch_data_to_vector_database = async (list: DocumentVectorSchema[]) => {
   }
 
   result = await batcher.do();
-  //console.log('END: ', JSON.stringify(result, null, 2));
 };
 
 const search_vector_database = async (
@@ -108,15 +100,11 @@ const search_vector_database = async (
   limit: number = 4,
   model: string = 'nomic-embed-text'
 ): Promise<any> => {
-  //console.log('#### EMBED QUESTION ####');
   const embedding = await ollama.embeddings({
     model: model,
     prompt: searchString,
   });
 
-  //console.log(embedding.embedding);
-
-  //console.log('#### DO NEAR VECTOR SEARCH ####');
   const result = await client.graphql
     .get()
     .withClassName('Documents')
@@ -169,18 +157,26 @@ const anaylze_result_with_ollama_and_respond = async (
   return response.message.content;
 };
 
-// const textChunk = `For the last two days, ever since leaving home, Pierre had been
-// living in the empty house of his deceased benefactor, Bazdeev. This is
-// how it happened.`;
+const textChunk = `For the last two days, ever since leaving home, Pierre had been
+living in the empty house of his deceased benefactor, Bazdeev. This is
+how it happened.`;
 
 const basePath = './documents/';
 const filename = 'PlantBasedDiet2019.pdf';
 //const filename = 'sherlock.txt';
+//const filename = 'file-sample_1MB.docx';
 const filePath = `${basePath}${filename}`;
 
-console.log('##### PDFTEXT #####');
-const pdfDocument = new DocumentReader(filePath);
-const pdfTextContent: string = await pdfDocument.getFileContent();
+console.log('##### FILE TEXT #####');
+const doc = new DocumentReader(filePath);
+const fileContent: string = await doc.getFileContent();
+
+saveFile(`./documents/${filename}_TEXT2.txt`, fileContent);
+
+// const pdfDocumentV1 = new DocumentReaderV1(filePath);
+// const pdfTextContentV1: string = await pdfDocumentV1.getFileContent();
+
+// saveFile('./documents/PlantBasedDiet2019V1.txt', pdfTextContentV1);
 
 // console.log('##### TEXT FILE #####');
 // const txtDocument = new DocumentReader(filePath);
@@ -217,8 +213,6 @@ const pdfTextContent: string = await pdfDocument.getFileContent();
 
 // const theQuestion = question3.q;
 
-
-
 // const searchResult = await search_vector_database(theQuestion, 2);
 // console.log('##### THE QUESTION #####');
 // console.log(theQuestion);
@@ -237,52 +231,28 @@ console.log(`Code execution time: ${(t1 - t0) / 1000} seconds`);
 console.log('');
 console.log('##### TEST PERFORMANCE #####');
 
-// console.log('');
-// const tSplitter = performance.now();
-// const splitter = new TokenTextSplitter({
-//   encodingName: 'gpt2',
-//   chunkSize: 100,
-//   chunkOverlap: 3,
+// console.log('start deleting data');
+
+// await client.schema.classDeleter().withClassName('Documents').do();
+
+// console.log('deleting data done!');
+// performanceTestFunc(() : string[] => chunker(fileContent, 100, 3));
+
+// performanceTestFunc(() : string[] => {
+//   return chunk(fileContent, {
+//     minLength: 100,
+//     maxLength: 1000,
+//     splitter: "sentence",
+//     overlap: 0,
+//     delimiters: ""
+//   });
 // });
-// const output1 = await splitter.createDocuments([textContent]);
-// const ts1 = performance.now();
-// console.log(`TokenTextSplitter execution time: ${(ts1 - tSplitter)} ms (length: ${output1.length})`);
-// console.log(`------------------`);
-// console.log(`0: ${output1[0].pageContent}`);
-// console.log(`------------------`);
 
-console.log('');
-const tChunker = performance.now();
-const output2 = chunker(pdfTextContent, 100, 3);
-const ts2 = performance.now();
-console.log(`chunker - execution time: ${(ts2 - tChunker)} ms (length: ${output2.length})`);
-console.log(`------------------`);
-console.log(`0: ${output2[0]}`);
-console.log(`------------------`);
+// performanceTestFunc(() : string[] => {
+//   const sentenceSplitter = new SentenceSplitter(fileContent, 8);
+//   return sentenceSplitter.getChunks();
+// });
 
-
-console.log('');
-const tChunk = performance.now();
-const chunks = chunk(pdfTextContent, {
-  minLength: 100,          // number of minimum characters into chunk
-  maxLength: 1000,       // number of maximum characters into chunk
-  splitter: "sentence", // paragraph | sentence
-  overlap: 0,            // number of overlap chracters
-  delimiters: ""         // regex for base split method
-});
-const ts3 = performance.now();
-console.log(`chunk - execution time: ${(ts3 - tChunk)} ms (length: ${chunks.length})`);
-console.log(`------------------`);
-console.log(`0: ${chunks[0]}`);
-console.log(`------------------`);
-
-
-console.log('');
-const tSentenceSplitter = performance.now();
-const sentenceSplitter = new SentenceSplitter(pdfTextContent, 8);
-const sentences = sentenceSplitter.getChunks();
-const ts4 = performance.now();
-console.log(`SentenceSplitter - execution time: ${(ts4 - tSentenceSplitter)} ms (length: ${sentences.length})`);
-console.log(`------------------`);
-console.log(`0: ${sentences[0]}`);
-console.log(`------------------`);
+// performanceTestFunc(() : string[] => {
+//   return chunkTextBySentences(fileContent, 8, 0);
+// });
